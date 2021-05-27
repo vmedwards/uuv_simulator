@@ -101,6 +101,11 @@ class HydrodynamicModel : public BuoyantObject
 
   /// \brief Temperature (not used by all models)
   protected: double temperature;
+
+  protected: double Zheight; // height
+  protected: double Yheight; // length
+  protected: double Xheight; // width
+  
 };
 
 /// \brief Pointer to model

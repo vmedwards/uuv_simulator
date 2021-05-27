@@ -16,12 +16,13 @@
 #include <cmath>
 
 #include <gazebo/gazebo.hh>
+#include <ignition/math/Box.hh>
 #include <uuv_gazebo_plugins/BuoyantObject.hh>
 
 namespace gazebo {
 
 /////////////////////////////////////////////////
-BuoyantObject::BuoyantObject(physics::LinkPtr _link)
+  BuoyantObject::BuoyantObject(physics::LinkPtr _link)
 {
   GZ_ASSERT(_link != NULL, "Invalid link pointer");
 
@@ -48,13 +49,23 @@ BuoyantObject::BuoyantObject(physics::LinkPtr _link)
 
   // TODO(mam0box) Change the way the bounding box is retrieved,
   // it should come from the physics engine but it is still not resolved
-#if GAZEBO_MAJOR_VERSION >= 8
-  this->boundingBox = link->BoundingBox();
-#else
-  math::Box bBox = link->GetBoundingBox();
-  this->boundingBox = ignition::math::Box(bBox.min.x, bBox.min.y, bBox.min.z,
-      bBox.max.x, bBox.max.y, bBox.max.z);
-#endif
+  // XXX: CAN CONFIRM THAT THIS IS STILL AN ISSUE
+
+
+  //#if GAZEBO_MAJOR_VERSION >= 8
+  this->boundingBox_from_g = link->BoundingBox();
+  //#else
+  //math::Box<double> bBox = link->GetBoundingBox();
+  //ignition::math::AxisAlignedBox = link->GetBoundingBox();
+  //this->boundingBox = ignition::math::Box(bBox.min.x, bBox.min.y, bBox.min.z,
+  //    bBox.max.x, bBox.max.y, bBox.max.z);
+  //#endif
+
+  this->Zheight = this->boundingBox_from_g.ZLength();
+  this->Yheight = this->boundingBox_from_g.YLength();
+  this->Xheight = this->boundingBox_from_g.XLength();
+  
+  
   // Set neutrally buoyant flag to false
   this->neutrallyBuoyant = false;
 }
@@ -83,7 +94,7 @@ void BuoyantObject::GetBuoyancyForce(const ignition::math::Pose3d &_pose,
   ignition::math::Vector3d &buoyancyForce,
   ignition::math::Vector3d &buoyancyTorque)
 {
-  double height = this->boundingBox.ZLength();
+  double height = this->Zheight;//this->boundingBox.ZLength();
   double z = _pose.Pos().Z();
   double volume = 0.0;
 
@@ -125,8 +136,8 @@ void BuoyantObject::GetBuoyancyForce(const ignition::math::Pose3d &_pose,
     // Page 65
     if (this->waterLevelPlaneArea <= 0)
     {
-      this->waterLevelPlaneArea = this->boundingBox.XLength() *
-        this->boundingBox.YLength();
+      this->waterLevelPlaneArea = this->Xheight * this->Yheight;
+      //this->boundingBox.XLength() *this->boundingBox.YLength();
       gzmsg << this->link->GetName() << "::" << "waterLevelPlaneArea = " <<
         this->waterLevelPlaneArea << std::endl;
     }
@@ -142,7 +153,7 @@ void BuoyantObject::GetBuoyancyForce(const ignition::math::Pose3d &_pose,
       buoyancyTorque = ignition::math::Vector3d(0, 0, 0);
       return;
     } else if (z < -height / 2.0) {
-      curSubmergedHeight = this->boundingBox.ZLength();
+      curSubmergedHeight = this->Zheight;//this->boundingBox.ZLength();
     } else {
       curSubmergedHeight = height / 2.0 - z;
     }//else
@@ -205,12 +216,14 @@ void BuoyantObject::ApplyBuoyancyForce()
 }
 
 /////////////////////////////////////////////////
-void BuoyantObject::SetBoundingBox(const ignition::math::Box &_bBox)
+void BuoyantObject::SetBoundingBox(const ignition::math::Box<double> &_bBox, double x, double y, double z)
 {
   this->boundingBox = ignition::math::Box(_bBox);
+  this->Zheight = z;
+  this->Yheight = y;
+  this->Xheight = x;
 
-  gzmsg << "New bounding box for " << this->link->GetName() << "::"
-    << this->boundingBox << std::endl;
+  //gzmsg << "New bounding box for " << this->link->GetName() << "::" << this->boundingBox << std::endl;
 }
 
 /////////////////////////////////////////////////

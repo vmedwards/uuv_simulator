@@ -27,6 +27,9 @@
 #include <gazebo/physics/Collision.hh>
 #include <gazebo/physics/Shape.hh>
 
+#include <ignition/math/Box.hh>
+#include <ignition/math/Vector3.hh>
+
 #define RESTORING_FORCE   "restoring_force"
 
 namespace gazebo
@@ -74,7 +77,7 @@ class BuoyantObject
   public: double GetGravity();
 
   /// \brief Sets bounding box
-  public: void SetBoundingBox(const ignition::math::Box &_bBox);
+  public: void SetBoundingBox(const ignition::math::Box<double> &_bBox, double x, double y, double z);
 
   /// \brief Adds a field in the hydroWrench map
   public: void SetStoreVector(std::string _tag);
@@ -120,7 +123,12 @@ class BuoyantObject
 
   /// \brief TEMP for calculation of the buoyancy
   /// force close to the surface
-  protected: ignition::math::Box boundingBox;
+  protected: ignition::math::Box<double> boundingBox;
+  protected: ignition::math::AxisAlignedBox boundingBox_from_g;
+  
+  protected: double Zheight; 
+  protected: double Yheight;
+  protected: double Xheight;
 
   /// \brief Storage for hydrodynamic and hydrostatic forces and torques
   /// for debugging purposes
